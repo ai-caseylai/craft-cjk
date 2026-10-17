@@ -1,5 +1,5 @@
 diff --git a/crates/fonts/build.rs b/crates/fonts/build.rs
-index 6169b23..050c696 100644
+index 6169b23..d382942 100644
 --- a/crates/fonts/build.rs
 +++ b/crates/fonts/build.rs
 @@ -55,7 +55,18 @@ fn craft_fonts(dir: &std::path::Path) -> Result<(String, Vec<String>), String> {
@@ -17,7 +17,7 @@ index 6169b23..050c696 100644
 +        // Hant,Hans,Latn in craft-fonts' manifest to be selectable.
 +        // Embedding the Traditional Chinese face INSTEAD of the Japanese one fixes both:
 +        // it covers kana as well as hanzi, so Japanese still renders.
-+        let wanted_on_wasm = *family == "Noto Sans CJK TC" && *style == "Regular";
++        let wanted_on_wasm = *family == "LXGW WenKai" && *style == "Regular";
 +        if wasm && !wanted_on_wasm {
              continue;
          }

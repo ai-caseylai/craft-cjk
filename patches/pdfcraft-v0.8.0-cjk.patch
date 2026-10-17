@@ -1,32 +1,16 @@
 diff --git a/crates/fonts/build.rs b/crates/fonts/build.rs
-index 9be5703..538c956 100644
+index 9be5703..1a751cc 100644
 --- a/crates/fonts/build.rs
 +++ b/crates/fonts/build.rs
-@@ -29,6 +29,12 @@ fn main() {
- 
+@@ -30,7 +30,6 @@ fn main() {
  /// Family-name prefixes of the faces AGENTS.md §1.1 forbids: Adobe's Source families and Noto
  /// CJK, which is Source Han under another name. The test in `src/craft.rs` has the same list.
-+/// Drive deployment: the project owner explicitly waived the Noto CJK bar for this deployment
-+/// (the same waiver already applied to the sibling DeckCraft build). Without an embedded Chinese
-+/// face the browser UI renders every Chinese label as tofu, because the web build has no system
-+/// fonts to fall back to. Only the CJK faces are let through here; Adobe's Source families stay
-+/// barred exactly as AGENTS.md 1.1 requires.
-+const OWNER_WAIVED_FAMILIES: [&str; 1] = ["Noto Sans CJK TC"];
  const BARRED_FAMILIES: [&str; 5] = ["Source Han", "Source Serif", "Source Sans", "Noto Sans CJK", "Noto Serif CJK"];
- 
+-
  /// One `CraftFont { .. }` initialiser per manifest line.
-@@ -45,7 +51,9 @@ fn craft_fonts(dir: &std::path::Path) -> Result<String, String> {
-         };
-         // AGENTS.md §1.1 bars Adobe's type designs whatever their licence, so a checkout that
-         // carries one (craft-fonts has Noto Sans CJK, which is Source Han) never embeds it.
--        if BARRED_FAMILIES.iter().any(|barred| family.starts_with(barred)) {
-+        if BARRED_FAMILIES.iter().any(|barred| family.starts_with(barred))
-+            && !OWNER_WAIVED_FAMILIES.iter().any(|ok| family.starts_with(ok))
-+        {
-             println!("cargo::warning=craft-fonts: not embedding {family} {style} (AGENTS.md §1.1)");
-             continue;
-         }
-@@ -55,8 +63,11 @@ fn craft_fonts(dir: &std::path::Path) -> Result<String, String> {
+ fn craft_fonts(dir: &std::path::Path) -> Result<String, String> {
+     let manifest = dir.join("fonts/manifest.txt");
+@@ -55,8 +54,11 @@ fn craft_fonts(dir: &std::path::Path) -> Result<String, String> {
          let telugu = scripts.split(',').any(|s| s.trim() == "Telu");
          // And the Hebrew ones (small), for Hebrew text and Edit text on the web.
          let hebrew = scripts.split(',').any(|s| s.trim() == "Hebr");

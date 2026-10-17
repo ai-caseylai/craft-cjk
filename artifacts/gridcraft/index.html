@@ -1,16 +1,19 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"><title>GridCraft</title>
-<style>html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#f3f3f3}
-#gridcraft_canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
-#gridcraft_loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#555;font:14px/1.6 system-ui,sans-serif;white-space:pre-wrap;padding:24px;text-align:center}</style></head>
-<body><canvas id="gridcraft_canvas"></canvas><div id="gridcraft_loading">Loading GridCraft&hellip;</div>
-<script type="module">
-const say=(m)=>{const e=document.getElementById("gridcraft_loading");if(e)e.textContent=m;};
-window.addEventListener("error",e=>say("JS ERROR: "+e.message));
-window.addEventListener("unhandledrejection",e=>say("REJECTED: "+(e.reason&&e.reason.message?e.reason.message:e.reason)));
-try{say("1/3 importing...");const m=await import('./gridcraft-web-83595d874ac8803b.js');say("2/3 instantiating...");
-const w=await m.default({module_or_path:'./gridcraft-web-a41f8457113be87c_bg.wasm'});say("3/3 starting app...");
-window.wasmBindings=m;dispatchEvent(new CustomEvent("TrunkApplicationStarted",{detail:{wasm:w}}));}
-catch(e){say("FAILED: "+(e&&e.message?e.message:e));document.title="GridCraft FAILED";}
-</script></body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>GridCraft</title>
+  <style>
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #f3f3f3; }
+    #gridcraft_canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    #gridcraft_loading { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      color: #555; font: 14px system-ui, sans-serif; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <canvas id="gridcraft_canvas"></canvas>
+  <div id="gridcraft_loading">Loading GridCraft&hellip;</div>
+<script type="module">import init from './gridcraft-web-83595d874ac8803b.js'; await init({ module_or_path: './gridcraft-web-07e54e6aa9f0d57b_bg.wasm' });</script>
+</body>
+</html>

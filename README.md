@@ -5,12 +5,12 @@ plain WebAssembly on Cloudflare R2 behind a Worker:
 
 | App | Version | Chinese UI | Characters covered | wasm |
 |---|---|---|---|---|
-| WordCraft | v0.7.0 | yes | full Traditional | 69.56 MB |
-| GridCraft | v0.7.0 | yes | 44,810 (whole Noto Sans CJK TC) | 33.66 MB |
-| DeckCraft | v0.7.0 | yes | 10,307 (Big5 L1 + HKSCS) | 29.18 MB |
-| PhotoCraft | v0.9.0 | yes | full Traditional | 28.79 MB |
-| VectorCraft | v0.9.0 | yes | 10,307 (Big5 L1 + HKSCS) | 49.30 MB |
-| PdfCraft | v0.8.0 | yes | 10,307 (Big5 L1 + HKSCS) | 46.67 MB |
+| WordCraft | v0.7.0 | yes | 8,895 | 45.24 MB |
+| GridCraft | v0.7.0 | yes | 8,895 | 22.72 MB |
+| DeckCraft | v0.7.0 | yes | 8,895 (Big5 L1 + the HKSCS tail) | 29.02 MB |
+| PhotoCraft | v0.9.0 | yes | 8,895 | 28.63 MB |
+| VectorCraft | v0.9.0 | yes | 8,895 (Big5 L1 + the HKSCS tail) | 49.30 MB |
+| PdfCraft | v0.8.0 | yes | 8,895 (Big5 L1 + the HKSCS tail) | 41.03 MB |
 
 Every app was checked in a real browser: it loads, and its interface renders Chinese glyphs — not
 tofu boxes.
@@ -81,20 +81,22 @@ Everything else is `cargo build --release` plus the same `wasm-bindgen` and `was
 
 ## Fonts
 
-The CJK faces are subsets of **Noto Sans CJK TC**, OFL-1.1. `fonts/` holds the character list and
-the scripts; the source font is not vendored here — fetch it from
-[notofonts/noto-cjk](https://github.com/notofonts/noto-cjk) and run:
+The CJK faces are subsets of **LXGW WenKai (霞鶩文楷)**, OFL-1.1, from
+[lxgw/LxgwWenKai](https://github.com/lxgw/LxgwWenKai) v1.522. `fonts/` holds the character list and
+the scripts; the source font is not vendored here — fetch `LXGWWenKai-Regular.ttf` from that
+project's releases and run:
 
-    pyftsubset NotoSansCJKtc-Regular.otf --text-file=fonts/hk10k.txt \
-      --output-file=NotoSansCJKtc-HK10k.otf \
+    pyftsubset LXGWWenKai-Regular.ttf --text-file=fonts/hk10k.txt \
+      --output-file=fonts/LXGWWenKaiTC-HK.otf \
       --layout-features='*' --no-hinting --desubroutinize --drop-tables+=DSIG
 
-The list is Big5 level 1 (the standard 5,495 commonly-used characters) plus the 4,684 characters
-that only Big5-HKSCS can decode — the genuine Hong Kong supplementary set, with Big5 level 2 left
-out. 10,307 of the 10,318 requested characters exist in Noto Sans CJK TC.
+The list is Big5 level 1 (the standard commonly-used characters) plus the characters that only
+Big5-HKSCS can decode — the genuine Hong Kong supplementary set, with Big5 level 2 left out. LXGW
+WenKai covers **100% of Big5 level 1** and 8,895 of the 10,316 characters asked for; the 1,421 it
+lacks are all CJK Extension B (U+20021–U+2F9D4), the rarest tail of HKSCS.
 
-Note that the subset is Traditional-only: Simplified-only characters (`简`, `报`, `价`, `单`, `项`,
-`进`) are absent. `fonts/NotoSansCJKtc-Big5.otf` is a wider 7,260 KB variant.
+The subset is Traditional-only: Simplified-only characters (`简`, `报`, `价`, `单`, `项`, `进`) are
+absent. `fonts/LXGWWenKaiTC-Big5L1.otf` is a smaller Big5-level-1-only variant.
 
 ## Attribution and licence
 
@@ -102,8 +104,9 @@ The patches are derived from MIT OR Apache-2.0 projects and stay under those lic
 `LICENSE-MIT` and `LICENSE-APACHE`. The font subsets are OFL-1.1 — see `fonts/OFL.txt` and
 `ATTRIBUTION.md`.
 
-The Noto CJK faces are Adobe's Source Han under another name. DeckCraft's and PdfCraft's
-`AGENTS.md` bar those families from their own builds. The project owner waived that bar for this
-deployment so the browser interface could render Chinese at all; the patches that do so say so in
-a comment where it happens. If you are not that owner, read your app's AGENTS.md before applying
-them.
+**No project's asset policy is weakened here.** Noto Sans CJK is Adobe's Source Han under another
+name, and DeckCraft's and PdfCraft's `AGENTS.md` §1.1 bar those families from their builds. An
+earlier revision of this work embedded Noto Sans CJK and needed a per-app owner waiver; the faces
+are now **LXGW WenKai**, which those policies already allow (it descends from Fontworks' Klee One,
+not from any Adobe design), so the patches contain no waiver, no exception and no barred family.
+PdfCraft's `BARRED_FAMILIES` list is left exactly as upstream wrote it.

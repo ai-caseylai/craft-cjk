@@ -1,5 +1,5 @@
 diff --git a/crates/ui-egui/src/theme.rs b/crates/ui-egui/src/theme.rs
-index 485b9a2..b134edf 100644
+index 485b9a2..9087f50 100644
 --- a/crates/ui-egui/src/theme.rs
 +++ b/crates/ui-egui/src/theme.rs
 @@ -469,9 +469,20 @@ fn load_fallback(fonts: &mut FontDefinitions, han: HanOrder) -> Vec<String> {
@@ -12,7 +12,7 @@ index 485b9a2..b134edf 100644
 +/// tofu: the native path reads faces from the OS and a browser has none. `CRAFT_FONTS_DIR`
 +/// cannot help either — it is a *runtime* path and no Rust source in this tree reads it
 +/// (only packaging scripts do). So embed one Chinese face at compile time instead;
-+/// `GRIDCRAFT_CJK_FONT` names the file. Noto Sans CJK TC covers Traditional and Simplified
++/// `GRIDCRAFT_CJK_FONT` names the file. LXGW WenKai covers Traditional and Simplified
 +/// Han plus kana, so it also serves the Japanese and Chinese interface languages.
  #[cfg(target_arch = "wasm32")]
 -fn load_fallback(_fonts: &mut FontDefinitions, _han: HanOrder) -> Vec<String> {

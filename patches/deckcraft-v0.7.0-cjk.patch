@@ -1,5 +1,5 @@
 diff --git a/crates/fonts/build.rs b/crates/fonts/build.rs
-index 76e7dc4..5a7c50a 100644
+index 76e7dc4..78c6b5e 100644
 --- a/crates/fonts/build.rs
 +++ b/crates/fonts/build.rs
 @@ -57,7 +57,9 @@ fn manifest(dir: &std::path::Path, manifest: &std::path::Path) -> Result<String,
@@ -9,7 +9,7 @@ index 76e7dc4..5a7c50a 100644
 -        if wasm && !matches!((*family, *style), ("BIZ UDPGothic", "Regular") | ("Inter", "Regular" | "Bold" | "Variable")) {
 +        // LOCAL PATCH (Drive deployment): the owner explicitly waived AGENTS.md 1.1 for Noto CJK TC.
 +        // The stock rule embeds only the Japanese face on wasm, which renders Chinese as tofu.
-+        if wasm && !matches!((*family, *style), ("Noto Sans CJK TC", "Regular") | ("Inter", "Regular" | "Bold" | "Variable")) {
++        if wasm && !matches!((*family, *style), ("LXGW WenKai", "Regular") | ("Inter", "Regular" | "Bold" | "Variable")) {
              continue;
          }
          let path = dir.join(file).canonicalize().map_err(|e| format!("{file}: {e}"))?;
