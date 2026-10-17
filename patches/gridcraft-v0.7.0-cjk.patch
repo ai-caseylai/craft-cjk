@@ -1,0 +1,27 @@
+diff --git a/crates/ui-egui/src/theme.rs b/crates/ui-egui/src/theme.rs
+index 485b9a2..b134edf 100644
+--- a/crates/ui-egui/src/theme.rs
++++ b/crates/ui-egui/src/theme.rs
+@@ -469,9 +469,20 @@ fn load_fallback(fonts: &mut FontDefinitions, han: HanOrder) -> Vec<String> {
+     keys
+ }
+ 
++/// LOCAL PATCH (Drive deployment).
++///
++/// The stock wasm build installs no fallback faces at all, so every CJK glyph renders as
++/// tofu: the native path reads faces from the OS and a browser has none. `CRAFT_FONTS_DIR`
++/// cannot help either — it is a *runtime* path and no Rust source in this tree reads it
++/// (only packaging scripts do). So embed one Chinese face at compile time instead;
++/// `GRIDCRAFT_CJK_FONT` names the file. Noto Sans CJK TC covers Traditional and Simplified
++/// Han plus kana, so it also serves the Japanese and Chinese interface languages.
+ #[cfg(target_arch = "wasm32")]
+-fn load_fallback(_fonts: &mut FontDefinitions, _han: HanOrder) -> Vec<String> {
+-    Vec::new()
++fn load_fallback(fonts: &mut FontDefinitions, _han: HanOrder) -> Vec<String> {
++    const KEY: &str = "wasm-cjk";
++    let bytes: &'static [u8] = include_bytes!(env!("GRIDCRAFT_CJK_FONT"));
++    fonts.font_data.insert(KEY.to_string(), Arc::new(FontData::from_static(bytes)));
++    vec![KEY.to_string()]
+ }
+ 
+ /// Every fallback face we look for, in chain order: `(key, candidate files)`. One file per script

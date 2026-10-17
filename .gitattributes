@@ -1,0 +1,4 @@
+# Large WebAssembly artifacts: keep them, but do not let git try to diff or compress them heavily.
+*.wasm binary
+*.otf binary
+*.ttf binary

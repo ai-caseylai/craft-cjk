@@ -1,0 +1,81 @@
+diff --git a/crates/fonts/build.rs b/crates/fonts/build.rs
+index 9be5703..538c956 100644
+--- a/crates/fonts/build.rs
++++ b/crates/fonts/build.rs
+@@ -29,6 +29,12 @@ fn main() {
+ 
+ /// Family-name prefixes of the faces AGENTS.md §1.1 forbids: Adobe's Source families and Noto
+ /// CJK, which is Source Han under another name. The test in `src/craft.rs` has the same list.
++/// Drive deployment: the project owner explicitly waived the Noto CJK bar for this deployment
++/// (the same waiver already applied to the sibling DeckCraft build). Without an embedded Chinese
++/// face the browser UI renders every Chinese label as tofu, because the web build has no system
++/// fonts to fall back to. Only the CJK faces are let through here; Adobe's Source families stay
++/// barred exactly as AGENTS.md 1.1 requires.
++const OWNER_WAIVED_FAMILIES: [&str; 1] = ["Noto Sans CJK TC"];
+ const BARRED_FAMILIES: [&str; 5] = ["Source Han", "Source Serif", "Source Sans", "Noto Sans CJK", "Noto Serif CJK"];
+ 
+ /// One `CraftFont { .. }` initialiser per manifest line.
+@@ -45,7 +51,9 @@ fn craft_fonts(dir: &std::path::Path) -> Result<String, String> {
+         };
+         // AGENTS.md §1.1 bars Adobe's type designs whatever their licence, so a checkout that
+         // carries one (craft-fonts has Noto Sans CJK, which is Source Han) never embeds it.
+-        if BARRED_FAMILIES.iter().any(|barred| family.starts_with(barred)) {
++        if BARRED_FAMILIES.iter().any(|barred| family.starts_with(barred))
++            && !OWNER_WAIVED_FAMILIES.iter().any(|ok| family.starts_with(ok))
++        {
+             println!("cargo::warning=craft-fonts: not embedding {family} {style} (AGENTS.md §1.1)");
+             continue;
+         }
+@@ -55,8 +63,11 @@ fn craft_fonts(dir: &std::path::Path) -> Result<String, String> {
+         let telugu = scripts.split(',').any(|s| s.trim() == "Telu");
+         // And the Hebrew ones (small), for Hebrew text and Edit text on the web.
+         let hebrew = scripts.split(',').any(|s| s.trim() == "Hebr");
++        // Drive deployment: keep the Traditional/Simplified Chinese face for the web build too;
++        // without it the browser UI had no Chinese glyphs and drew tofu.
++        let chinese = scripts.split(',').any(|s| matches!(s.trim(), "Hant" | "Hans"));
+         let web_face =
+-            (*family == "BIZ UDPGothic" && *style == "Regular") || arabic || telugu || hebrew || scripts.split(',').any(|s| s.trim() == "Thai");
++            (*family == "BIZ UDPGothic" && *style == "Regular") || arabic || telugu || hebrew || scripts.split(',').any(|s| s.trim() == "Thai") || chinese;
+         if wasm && !web_face {
+             continue;
+         }
+diff --git a/crates/ui-egui/Cargo.toml b/crates/ui-egui/Cargo.toml
+index 5400829..5d4574c 100644
+--- a/crates/ui-egui/Cargo.toml
++++ b/crates/ui-egui/Cargo.toml
+@@ -63,7 +63,7 @@ rfd = { workspace = true, features = ["file-handle-inner"] }
+ wasm-bindgen-futures = "0.4"
+ wasm-bindgen = "0.2"
+ js-sys = "0.3"
+-web-sys = { version = "0.3", features = ["Window", "Document", "Element", "HtmlElement", "HtmlAnchorElement", "Blob", "BlobPropertyBag", "Url", "HtmlIFrameElement", "HtmlImageElement", "HtmlCollection", "Node", "EventTarget"] }
++web-sys = { version = "0.3", features = ["Navigator", "Window", "Document", "Element", "HtmlElement", "HtmlAnchorElement", "Blob", "BlobPropertyBag", "Url", "HtmlIFrameElement", "HtmlImageElement", "HtmlCollection", "Node", "EventTarget"] }
+ 
+ [dev-dependencies]
+ pdfcraft-xfa = { workspace = true }
+diff --git a/crates/ui-egui/src/i18n/mod.rs b/crates/ui-egui/src/i18n/mod.rs
+index 18a0fc5..79bba83 100644
+--- a/crates/ui-egui/src/i18n/mod.rs
++++ b/crates/ui-egui/src/i18n/mod.rs
+@@ -389,7 +389,21 @@ fn first_supported(list: &str) -> Option<Lang> {
+ 
+ #[cfg(target_arch = "wasm32")]
+ fn detect_system_lang() -> Lang {
+-    Lang::EN
++    // Drive deployment: this returned Lang::EN unconditionally, so the web build could never
++    // pick a shipped translation such as zh-hant, however the browser was configured.
++    let mut tags: Vec<String> = Vec::new();
++    if let Some(win) = web_sys::window() {
++        let nav = win.navigator();
++        for v in nav.languages().iter() {
++            if let Some(s) = v.as_string() {
++                tags.push(s);
++            }
++        }
++        if let Some(one) = nav.language() {
++            tags.push(one);
++        }
++    }
++    tags.iter().find_map(|t| lang_from_tag(t)).unwrap_or(Lang::EN)
+ }
+ 
+ thread_local! {

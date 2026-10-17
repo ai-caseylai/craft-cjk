@@ -1,0 +1,11 @@
+diff --git a/crates/text/web-fonts.txt b/crates/text/web-fonts.txt
+index 1c8c440..93705c0 100644
+--- a/crates/text/web-fonts.txt
++++ b/crates/text/web-fonts.txt
+@@ -34,3 +34,6 @@ background | Reem Kufi | Regular
+ background | Aref Ruqaa | Regular
+ background | Aref Ruqaa | Bold
+ background | Gulzar | Regular
++# Drive deployment: the UI's Chinese fallback. Fetched before the first frame, then registered
++# in FontDb::global(), so the interface no longer renders Chinese as tofu.
++startup | Noto Sans CJK TC | Regular

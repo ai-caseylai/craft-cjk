@@ -1,0 +1,125 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index 54085cf..eb1dc10 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -5037,6 +5037,7 @@ dependencies = [
+  "serde_json",
+  "sys-locale",
+  "toml",
++ "web-sys",
+  "winsafe",
+ ]
+ 
+diff --git a/crates/text/build.rs b/crates/text/build.rs
+index 5377370..c405ee2 100644
+--- a/crates/text/build.rs
++++ b/crates/text/build.rs
+@@ -24,7 +24,7 @@ fn main() {
+     println!("cargo::rerun-if-env-changed=CRAFT_FONTS_REQUIRED");
+     let wasm = std::env::var("CARGO_CFG_TARGET_ARCH").is_ok_and(|a| a == "wasm32");
+     let mut src = String::from("pub static CRAFT_FONTS: &[CraftFont] = &[\n");
+-    if let Some(dir) = std::env::var_os("CRAFT_FONTS_DIR").filter(|d| !d.is_empty() && !wasm).map(PathBuf::from) {
++    if let Some(dir) = std::env::var_os("CRAFT_FONTS_DIR").filter(|d| !d.is_empty()).map(PathBuf::from) {
+         match craft_fonts(&dir) {
+             Ok(entries) => src.push_str(&entries),
+             Err(e) if std::env::var_os("CRAFT_FONTS_REQUIRED").is_some() => {
+diff --git a/crates/ui-egui/Cargo.toml b/crates/ui-egui/Cargo.toml
+index aeefaca..9e1951b 100644
+--- a/crates/ui-egui/Cargo.toml
++++ b/crates/ui-egui/Cargo.toml
+@@ -68,3 +68,9 @@ flate2 = { workspace = true }
+ epaint_default_fonts = "0.36"
+ serde_json = { workspace = true }
+ toml = "1"
++
++# The web build reads navigator.languages so the UI language follows the browser
++# (src/i18n/system.rs); bounded_tags keeps the list to tags the resolver can use.
++# web-sys 0.3.106 is already in Cargo.lock via the app crates, so this adds no new version.
++[target.'cfg(target_arch = "wasm32")'.dependencies]
++web-sys = { version = "0.3", features = ["Window", "Navigator"] }
+\ No newline at end of file
+diff --git a/crates/ui-egui/src/cjk_fonts.rs b/crates/ui-egui/src/cjk_fonts.rs
+index e4c2739..d23d5f9 100644
+--- a/crates/ui-egui/src/cjk_fonts.rs
++++ b/crates/ui-egui/src/cjk_fonts.rs
+@@ -52,9 +52,23 @@ pub struct Sources {
+     pub embedded: fn(CjkScript) -> Vec<&'static CraftFont>,
+ }
+ 
++/// Embedded craft-fonts faces whose manifest scripts list the given tag, in manifest order.
++fn craft_embedded_listing(tag: &str) -> Vec<&'static CraftFont> {
++    craft_fonts::CRAFT_FONTS.iter().filter(|f| f.scripts.contains(&tag)).collect()
++}
++
+ /// craft-fonts' Japanese fonts for the Japanese script, UI face first (empty without craft-fonts).
+ pub fn craft_embedded(script: CjkScript) -> Vec<&'static CraftFont> {
+-    if script == CjkScript::Japanese { craft_fonts::japanese_for_ui() } else { Vec::new() }
++    match script {
++        CjkScript::Japanese => craft_fonts::japanese_for_ui(),
++        // Drive deployment: the web build embeds no system fonts, and upstream routes
++        // only the Japanese face through the embedded hook, so the UI's Chinese had no
++        // source at all and every label rendered as tofu. Route the embedded craft-fonts
++        // face for the Chinese scripts too.
++        CjkScript::SimplifiedChinese => craft_embedded_listing("Hans"),
++        CjkScript::TraditionalChinese => craft_embedded_listing("Hant"),
++        _ => Vec::new(),
++    }
+ }
+ 
+ /// No embedded fonts (tests that pin the system-font behaviour).
+diff --git a/crates/ui-egui/src/i18n/system.rs b/crates/ui-egui/src/i18n/system.rs
+index 49bc3bc..2b0c5e7 100644
+--- a/crates/ui-egui/src/i18n/system.rs
++++ b/crates/ui-egui/src/i18n/system.rs
+@@ -2,9 +2,8 @@
+ 
+ use super::{Lang, lang_from_tag};
+ 
+-#[cfg(not(target_arch = "wasm32"))]
++// Bounding applies to every target: the web build reads the browser's own list too.
+ const MAX_SYSTEM_TAGS: usize = 64;
+-#[cfg(not(target_arch = "wasm32"))]
+ const MAX_SYSTEM_TAG_BYTES: usize = 128;
+ 
+ /// Resolve Auto against the current registry. Cache the OS's tags, rather than a language,
+@@ -26,7 +25,6 @@ fn resolve(tags: &[String]) -> Lang {
+     tags.iter().find_map(|tag| lang_from_tag(tag)).unwrap_or(Lang::EN)
+ }
+ 
+-#[cfg(not(target_arch = "wasm32"))]
+ fn bounded_tags(tags: impl IntoIterator<Item = String>) -> Vec<String> {
+     tags.into_iter()
+         .take(MAX_SYSTEM_TAGS)
+@@ -52,9 +50,31 @@ fn detect_system_tags() -> Vec<String> {
+     std::panic::catch_unwind(|| bounded_tags(sys_locale::get_locales())).unwrap_or_default()
+ }
+ 
++/// The browser's own preference list.
++///
++/// This used to return an empty `Vec`, so `resolve` fell back to `Lang::EN` on every web build and
++/// a shipped translation such as `zh-hant` could never be selected, however the browser was
++/// configured. `navigator.languages` is the ordered list Chrome and Firefox expose;
++/// `navigator.language` is the single-value fallback for browsers that omit it.
+ #[cfg(all(not(test), target_arch = "wasm32"))]
+ fn detect_system_tags() -> Vec<String> {
+-    Vec::new()
++    let mut tags: Vec<String> = Vec::new();
++    if let Some(win) = web_sys::window() {
++        let nav = win.navigator();
++        // `Navigator::languages()` returns the js Array directly (no Result); `language()` is the
++        // Option<String> single-value fallback.
++        for v in nav.languages().iter() {
++            if let Some(s) = v.as_string() {
++                tags.push(s);
++            }
++        }
++        if tags.is_empty() {
++            if let Some(one) = nav.language() {
++                tags.push(one);
++            }
++        }
++    }
++    bounded_tags(tags)
+ }
+ 
+ #[cfg(test)]

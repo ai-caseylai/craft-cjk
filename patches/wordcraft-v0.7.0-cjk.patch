@@ -1,0 +1,24 @@
+diff --git a/crates/fonts/build.rs b/crates/fonts/build.rs
+index 6169b23..050c696 100644
+--- a/crates/fonts/build.rs
++++ b/crates/fonts/build.rs
+@@ -55,7 +55,18 @@ fn craft_fonts(dir: &std::path::Path) -> Result<(String, Vec<String>), String> {
+         let [family, style, file, scripts, ..] = f.as_slice() else {
+             return Err(format!("malformed manifest line: {line}"));
+         };
+-        if wasm && !(*family == "BIZ UDPGothic" && *style == "Regular") {
++        // LOCAL PATCH (Drive deployment) — the stock rule keeps web builds to the Japanese
++        // UI face alone. That is wrong for a Traditional Chinese deployment twice over:
++        //   1. Japanese glyph shapes are used for Chinese, and characters outside JIS
++        //      (啟, 另, …) render as boxes — the #241 bug the comment above describes.
++        //   2. `ui_cjk_fonts_for` orders `ja.chain(zh)` unless the interface is Simplified
++        //      Chinese, so a Japanese face always wins the UI.
++        // `chinese_fonts()` also only matches script "Hans", so the TC face is tagged
++        // Hant,Hans,Latn in craft-fonts' manifest to be selectable.
++        // Embedding the Traditional Chinese face INSTEAD of the Japanese one fixes both:
++        // it covers kana as well as hanzi, so Japanese still renders.
++        let wanted_on_wasm = *family == "Noto Sans CJK TC" && *style == "Regular";
++        if wasm && !wanted_on_wasm {
+             continue;
+         }
+         let path = dir.join(file).canonicalize().map_err(|e| format!("{file}: {e}"))?;
